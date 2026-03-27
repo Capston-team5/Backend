@@ -1,9 +1,9 @@
 HELP.md
 .gradle
-build/
+gradle/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+!**/src/main/**/gradle/
+!**/src/test/**/gradle/
 
 ### STS ###
 .apt_generated
@@ -36,4 +36,5 @@ out/
 ### VS Code ###
 .vscode/
 
+### Custom ###
 application-local.yml
