@@ -10,40 +10,62 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtUtil jwtUtil;  // JWT 필터에 주입할 JwtUtil
+    private final JwtUtil jwtUtil;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-        // BCrypt = 비밀번호 암호화 알고리즘
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())               // CSRF 비활성화 (REST API라서)
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // STATELESS = 세션 사용 안 함 (JWT 사용하니까)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/v1/users",                    // 회원가입
-                                "/api/v1/users/login",              // 로그인
-                                "/api/v1/admin/login",              // 관리자 로그인
-                                "/swagger-ui.html",                 // Swagger UI
-                                "/swagger-ui/**",                   // Swagger UI
-                                "/api-docs/**"                      // Swagger API 문서
-                        ).permitAll()                           // 위 경로는 인증 없이 접근 가능
-                        .anyRequest().authenticated()           // 나머지는 인증 필요
+                                "/api/v1/users",
+                                "/api/v1/users/login",
+                                "/api/v1/admin/login",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/api-docs/**"
+                        ).permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN") // 관리자만 접근
+                        .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtFilter(jwtUtil),    // JWT 필터 등록
+                .addFilterBefore(new JwtFilter(jwtUtil),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+                "http://localhost:3000",     // 프론트 로컬 개발 주소
+                "http://프론트엔드배포주소"    // 프론트 배포 후 주소로 변경
+        ));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

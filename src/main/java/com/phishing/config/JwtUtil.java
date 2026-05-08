@@ -3,6 +3,7 @@ package com.phishing.config;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -11,11 +12,11 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET = "phishing-secret-key-must-be-at-least-32-bytes!!";
-    // 32바이트 이상의 비밀키
+    @Value("${jwt.secret}")
+    private String SECRET;
 
-    private final long EXPIRATION_TIME = 1000 * 60 * 60 * 2;
-    // 토큰 유효시간 = 2시간
+    @Value("${jwt.expiration}")
+    private long EXPIRATION_TIME;
 
     // 토큰 생성
     public String generateToken(Long userId, String role) {
@@ -43,8 +44,12 @@ public class JwtUtil {
         try {
             getClaims(token);
             return true;
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            throw new IllegalArgumentException("토큰이 만료되었습니다");
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            throw new IllegalArgumentException("잘못된 토큰입니다");
         } catch (Exception e) {
-            return false;
+            throw new IllegalArgumentException("유효하지 않은 토큰입니다");
         }
     }
 
