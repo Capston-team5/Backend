@@ -14,12 +14,3 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
-server:
-  port: 8080
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-  api-docs:
-    path: /api-docs
