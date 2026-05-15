@@ -57,8 +57,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-                "http://localhost:3000",     // 프론트 로컬 개발 주소
-                "http://프론트엔드배포주소"    // 프론트 배포 후 주소로 변경
+                "http://localhost:5173",     // 프론트 로컬 개발 주소
+                "http://10.30.81.223:5173"    // 프론트 배포 후 주소로 변경
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         config.setAllowedHeaders(List.of("*"));

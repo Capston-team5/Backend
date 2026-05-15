@@ -15,9 +15,8 @@ import java.util.List;
 
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
-    // OncePerRequestFilter = 요청당 한 번만 실행되는 필터
 
-    private final JwtUtil jwtUtil;  // JWT 검증용
+    private final JwtUtil jwtUtil;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -25,32 +24,29 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
-        // Header에서 Authorization 값 가져오기
-        // 예) Authorization: Bearer eyJhbGci...
 
         if (header != null && header.startsWith("Bearer ")) {
-            // "Bearer " 로 시작하면 토큰 있는 것
             String token = header.substring(7);
-            // "Bearer " 7글자 제거 후 토큰만 추출
 
-            if (jwtUtil.validateToken(token)) {
-                // 토큰 유효하면
-                Long userId = jwtUtil.getUserId(token);     // userId 추출
-                String role = jwtUtil.getRole(token);       // role 추출
+            try {
+                if (jwtUtil.validateToken(token)) {
+                    Long userId = jwtUtil.getUserId(token);
+                    String role = jwtUtil.getRole(token);
 
-                // Spring Security에 인증 정보 저장
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userId,                                         // principal (userId)
-                                null,                                           // credentials
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role)) // 권한
-                        );
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                // 이후 Controller에서 userId 꺼낼 수 있음
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userId,
+                                    null,
+                                    List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                            );
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (Exception e) {
+                // 토큰 오류 시 인증 없이 다음 필터로 넘김
+                SecurityContextHolder.clearContext();
             }
         }
 
         filterChain.doFilter(request, response);
-        // 다음 필터로 넘기기
     }
 }
