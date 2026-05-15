@@ -67,11 +67,28 @@ public class ReportsService {
     @Transactional(readOnly = true)     // 읽기 전용 트랜잭션
     public ReportsDto.PhoneInfoResponse getPhoneInfo(String phoneNumber) {
 
-        PhoneReport phoneReport = phoneReportRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new IllegalArgumentException("신고 이력이 없는 번호입니다"));
+        // 신고 이력 없으면 UNKNOWN 반환
+        if (!phoneReportRepository.existsByPhoneNumber(phoneNumber)) {
+            return new ReportsDto.PhoneInfoResponse(
+                    phoneNumber,
+                    0,
+                    "UNKNOWN",
+                    "신고 이력이 없는 번호입니다. 피싱 번호로 의심되면 신고해주세요."
+            );
+        }
 
-        // 위험도 안내 메시지 생성
-        String message = phoneReport.getReportCount() + "건 신고된 번호입니다. 주의하세요.";
+        PhoneReport phoneReport = phoneReportRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow();
+
+        // 위험도별 메시지 생성
+        String message;
+        switch (phoneReport.getRiskLevel()) {
+            case "LOW"      -> message = phoneReport.getReportCount() + "건 신고된 번호입니다. 주의하세요.";
+            case "MEDIUM"   -> message = phoneReport.getReportCount() + "건 신고된 번호입니다. 피싱 가능성이 있습니다.";
+            case "HIGH"     -> message = phoneReport.getReportCount() + "건 신고된 번호입니다. 피싱 위험이 높습니다.";
+            case "CRITICAL" -> message = phoneReport.getReportCount() + "건 신고된 번호입니다. 매우 위험한 번호입니다.";
+            default         -> message = phoneReport.getReportCount() + "건 신고된 번호입니다.";
+        }
 
         return new ReportsDto.PhoneInfoResponse(
                 phoneReport.getPhoneNumber(),
