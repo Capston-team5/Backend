@@ -11,7 +11,7 @@ public class UrlAnalysis {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String userId;       // 분석을 요청한 사용자 ID
+    private Long userId;       // 분석을 요청한 사용자 ID
     private String url;          // 분석한 URL
     private boolean isMalicious; // 악성 여부
     private String details;      // 상세 결과 메시지
