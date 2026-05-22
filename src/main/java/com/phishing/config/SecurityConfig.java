@@ -44,7 +44,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/api-docs/**"
                         ).permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN") // 관리자만 접근
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil),
@@ -57,8 +57,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-                "http://localhost:5173",     // 프론트 로컬 개발 주소
-                "http://10.30.81.223:5173"    // 프론트 배포 후 주소로 변경
+                "http://localhost:5173",
+                "http://10.30.81.223:5173",
+                "http://18.179.53.245:5173"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
