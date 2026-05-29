@@ -12,7 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.phishing.domain.UrlAnalysis;
+
+// 🌟 수정 1: 옛날 UrlAnalysis 대신 우리가 새로 만든 AnalysisHistory를 불러옵니다!
+import com.phishing.domain.AnalysisHistory;
 import com.phishing.repository.UrlAnalysisRepository;
 
 import java.util.List;
@@ -73,18 +75,20 @@ public class AdminService {
 
     }
 
-    // URL 분석 전체 조회
+    // URL 분석 전체 조회 (통합 분석 내역 조회)
     @Transactional(readOnly = true)
     public List<AdminDto.UrlListResponse> getAllUrls() {
-        List<UrlAnalysis> urls = urlAnalysisRepository.findAll();
+        // 🌟 수정 2: UrlAnalysis 대신 AnalysisHistory로 받습니다.
+        List<AnalysisHistory> urls = urlAnalysisRepository.findAll();
+
         return urls.stream()
                 .map(u -> new AdminDto.UrlListResponse(
                         u.getId(),
                         u.getUserId(),
-                        u.getUrl(),
+                        u.getTarget(),     // 🌟 수정 3: getUrl() ➔ getTarget()으로 변경
                         u.isMalicious(),
                         u.getDetails(),
-                        u.getTimestamp()
+                        u.getAnalyzedAt()  // 🌟 수정 4: getTimestamp() ➔ getAnalyzedAt()으로 변경
                 ))
                 .collect(Collectors.toList());
     }
