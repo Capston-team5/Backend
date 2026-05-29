@@ -4,13 +4,14 @@ import com.phishing.dto.AnalysisHistoryResponseDto;
 import com.phishing.service.UrlAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication; // 🌟 추가된 시큐리티 주머니
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1") // 💡 여기서 이미 "/api/v1"을 깔고 들어갑니다!
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class UrlAnalysisController {
 
@@ -18,10 +19,13 @@ public class UrlAnalysisController {
 
     // 1. [명세서 1번] URL 피싱 분석
     @PostMapping("/phishing/analyze")
-    public ResponseEntity<String> analyzeUrl(@RequestParam("url") String targetUrl) {
-        // 🌟 수정된 부분: 시큐리티 연동 전까지 임시로 1번 유저(1L) 아이디를 달아서 보냅니다!
-        Long dummyUserId = 1L;
-        String result = urlAnalysisService.analyzeUrl(targetUrl, dummyUserId);
+    // 🌟 수정: 메서드 파라미터에 Authentication을 추가해서 문지기가 넘겨준 정보를 받습니다!
+    public ResponseEntity<String> analyzeUrl(@RequestParam("url") String targetUrl, Authentication authentication) {
+
+        // 🌟 마법의 코드: 주머니에서 진짜 유저 ID 꺼내기 (보통 토큰의 Name/Subject에 ID가 들어있습니다)
+        Long userId = Long.parseLong(authentication.getName());
+
+        String result = urlAnalysisService.analyzeUrl(targetUrl, userId);
         return ResponseEntity.ok("🤖 [AI URL 수사관 분석 결과]\n\n" + result);
     }
 
@@ -40,14 +44,16 @@ public class UrlAnalysisController {
 
     // 🌟 프론트엔드가 요청한 "진짜" 통합 이력 조회 API (본게임!)
     @GetMapping("/analysis/history")
-    public ResponseEntity<List<AnalysisHistoryResponseDto>> getHistory() {
-        // 실제로는 로그인한 유저 ID를 가져와야 하지만, 일단 테스트를 위해 1번 유저로 고정
-        Long dummyUserId = 1L;
-        List<AnalysisHistoryResponseDto> historyList = urlAnalysisService.getUserHistory(dummyUserId);
+    public ResponseEntity<List<AnalysisHistoryResponseDto>> getHistory(Authentication authentication) { // 🌟 Authentication 추가
+
+        // 🌟 마법의 코드: 주머니에서 진짜 유저 ID 꺼내기
+        Long userId = Long.parseLong(authentication.getName());
+
+        List<AnalysisHistoryResponseDto> historyList = urlAnalysisService.getUserHistory(userId);
         return ResponseEntity.ok(historyList);
     }
 
-    // 🛠️ 껍데기 테스트용 임시 API (경로 중복 버그 수정: /api/v1 제거)
+    // 🛠️ 껍데기 테스트용 임시 API (나중에 지우셔도 됩니다)
     @GetMapping("/analysis/history/test")
     public ResponseEntity<AnalysisHistoryResponseDto> testDto() {
         AnalysisHistoryResponseDto dummyData = AnalysisHistoryResponseDto.builder()
