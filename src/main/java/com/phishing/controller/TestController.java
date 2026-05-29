@@ -15,6 +15,8 @@ public class TestController {
     // 인터넷 주소창에서 바로 접속해서 테스트하기 위한 임시 API
     @GetMapping("/api/test-url")
     public String testUrl(@RequestParam String url) {
-        return urlAnalysisService.analyzeUrl(url);
+        // 🌟 수정된 부분: 서비스가 '누가' 검사했는지 물어보므로, 가짜 유저 ID(1L)를 달아서 보냅니다!
+        Long dummyUserId = 1L;
+        return urlAnalysisService.analyzeUrl(url, dummyUserId);
     }
 }

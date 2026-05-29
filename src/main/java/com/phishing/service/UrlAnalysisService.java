@@ -1,12 +1,17 @@
 package com.phishing.service;
 
-import com.phishing.domain.UrlAnalysis;
+import com.phishing.domain.AnalysisHistory;
+import com.phishing.dto.AnalysisHistoryResponseDto;
 import com.phishing.repository.UrlAnalysisRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -14,55 +19,78 @@ public class UrlAnalysisService {
 
     private final OpenAiService openAiService;
     private final UrlAnalysisRepository urlAnalysisRepository;
-
-    // 🌟 추가된 부분: 구글 API 서비스를 주입받습니다.
     private final GoogleSafeBrowsingService googleSafeBrowsingService;
 
-    // 1. [수정된 기능] URL 분석 및 DB 저장 (하이브리드 탐지)
-    public String analyzeUrl(String targetUrl) {
+    // 1. [기존 기능 수정] URL 분석 및 DB 저장 (하이브리드 탐지)
+    // 💡 변경점: 이제 누가(userId) 검사했는지 파라미터로 받아야 합니다.
+    public String analyzeUrl(String targetUrl, Long userId) {
         System.out.println("🔍 URL 1차 검사를 시작합니다 (구글 DB): " + targetUrl);
-
         String finalResult = "";
+        String riskLevel = "SAFE";
 
-        // 1단계: 구글에 먼저 물어보기
         boolean isMalicious = googleSafeBrowsingService.isMaliciousUrl(targetUrl);
 
         if (isMalicious) {
-            // 구글에서 이미 블랙리스트로 확인된 경우 (AI 호출 안 함 = 비용/시간 절약!)
             System.out.println("🚨 [경고] 구글 보안 DB에서 악성 URL로 판별되었습니다!");
-            finalResult = "위험도: CRITICAL. 구글 보안 데이터베이스에서 확인된 악성(피싱/스미싱) URL입니다. 즉시 접속을 중단하세요.";
+            finalResult = "위험도: CRITICAL. 구글 보안 데이터베이스에서 확인된 악성 URL입니다.";
+            riskLevel = "CRITICAL";
         } else {
-            // 2단계: 구글 통과 시, 우리 AI '돈킴이'에게 정밀 분석 의뢰
             System.out.println("✅ 구글 검사 통과! AI 수사관 '돈킴이'에게 2차 정밀 분석을 의뢰합니다.");
             finalResult = openAiService.analyzePhishing(targetUrl);
+            // AI 결과에 따라 riskLevel 파싱하는 로직이 있다면 여기에 추가
+            riskLevel = "MEDIUM"; // (임시)
         }
 
-        // 3단계: 분석 결과를 우리 자체 DB에 저장
+        // 🌟 프론트엔드 통합 요청에 맞춰 DB 저장 데이터 세팅!
         try {
-            UrlAnalysis newRecord = new UrlAnalysis();
-            // 💡 팁: 빈 껍데기만 저장되지 않도록, 분석한 URL과 결과를 세팅해주면 좋습니다!
-            // newRecord.setUrl(targetUrl);
-            // newRecord.setResult(finalResult);
+            AnalysisHistory newRecord = new AnalysisHistory();
+            newRecord.setUserId(userId);     // 검사 요청한 유저 ID
+            newRecord.setType("URL");        // 분석 종류
+            newRecord.setTarget(targetUrl);  // URL 주소
+            newRecord.setRiskLevel(riskLevel); // 위험 등급
+            newRecord.setAnalyzedAt(LocalDateTime.now()); // 분석 시각
+            newRecord.setAiResult(finalResult);
 
             urlAnalysisRepository.save(newRecord);
-            System.out.println("💾 분석 결과가 DB에 안전하게 저장되었습니다!");
+            System.out.println("💾 URL 분석 결과가 DB에 안전하게 저장되었습니다!");
         } catch (Exception e) {
             System.err.println("🚨 DB 저장 중 문제가 발생했습니다: " + e.getMessage());
         }
-
         return finalResult;
     }
 
-    // 2. [기존 기능] 분석 결과 평가하기 (도움됨/안됨)
+    // 🌟 [신규 기능] 특정 유저의 통합 분석 이력 조회 (프론트엔드 명세서 완벽 대응)
+    public List<AnalysisHistoryResponseDto> getUserHistory(Long userId) {
+        // 1. DB에서 유저 ID로 모든 기록을 가져옵니다.
+        List<AnalysisHistory> histories = urlAnalysisRepository.findByUserIdOrderByAnalyzedAtDesc(userId);
+
+        // 프론트엔드가 요청한 날짜 포맷 (예: 2026-03-13 19:41:25)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        // 2. DB 데이터를 프론트엔드 전용 DTO 그릇으로 예쁘게 옮겨 담습니다.
+        return histories.stream().map(history ->
+                AnalysisHistoryResponseDto.builder()
+                        .id(history.getId())
+                        .type(history.getType())
+                        .target(history.getTarget())
+                        .riskLevel(history.getRiskLevel())
+                        .riskScore(history.getRiskScore())
+                        .phishingType(history.getPhishingType())
+                        .analyzedAt(history.getAnalyzedAt() != null ? history.getAnalyzedAt().format(formatter) : null)
+                        .build()
+        ).collect(Collectors.toList());
+    }
+
+    // 3. [기존 기능] 분석 결과 평가하기 (도움됨/안됨)
     public void evaluateResult(Long id, boolean helpful) {
-        UrlAnalysis record = urlAnalysisRepository.findById(id)
+        AnalysisHistory record = urlAnalysisRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 기록이 없습니다. ID: " + id));
 
         record.setIsHelpful(helpful);
         urlAnalysisRepository.save(record);
     }
 
-    // 3. [기존 기능] 평가 통계 계산해서 가져오기
+    // 4. [기존 기능] 평가 통계 계산해서 가져오기
     public Map<String, Object> getEvaluationStats() {
         long totalCount = urlAnalysisRepository.count();
         long helpfulCount = urlAnalysisRepository.countByIsHelpful(true);
