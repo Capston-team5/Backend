@@ -1,10 +1,11 @@
 package com.phishing.controller;
 
-import com.phishing.domain.ChatMessage;
+import com.phishing.domain.ChatSession;
 import com.phishing.dto.ChatResponseDto;
 import com.phishing.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -12,35 +13,55 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/chat") // 🌟 프론트 명세서에 맞춰 "/api/v1/chat"으로 통일!
+@RequestMapping("/api/v1/chat")
 @RequiredArgsConstructor
 public class ChatController {
 
     private final ChatService chatService;
 
-    // 1. [명세서 반영] 챗봇 응답 및 ID 반환
+    // 대화 전송 및 세션 저장 로직
     @PostMapping
-    public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, String> request, Authentication authentication) {
+        Long userId = Long.parseLong(authentication.getName()); // 로그인한 진짜 유저 ID
+
         String sessionId = request.get("sessionId");
-        String message = request.get("message"); // 유저가 보낸 메시지
+        String message = request.get("message");
+        // 프론트엔드가 첫 메시지 전송 시 함께 보내는 메타데이터
+        String type = request.get("type");
+        String riskLevel = request.get("riskLevel");
+        String preview = request.get("preview");
 
-        // 서비스에서 로직 처리 후 DTO 받아오기
-        ChatResponseDto responseDto = chatService.processAndSaveChat(sessionId, message);
+        ChatResponseDto responseDto = chatService.processAndSaveChat(sessionId, message, type, riskLevel, preview, userId);
 
-        // 프론트엔드가 요청한 정확한 JSON 형태({success, message, data})로 포장하기
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "성공했습니다");
-        response.put("data", responseDto); // 🌟 여기에 DTO(ID 포함)가 쏙 들어갑니다!
+        response.put("data", responseDto);
 
         return ResponseEntity.ok(response);
     }
 
-    // 2. [명세서 반영] 대화 이력 조회 (경로를 프론트 요청인 {sessionId}/history 로 맞춤)
+    // (A) 내 대화 세션 목록 API
+    @GetMapping("/sessions")
+    public ResponseEntity<Map<String, Object>> getSessions(Authentication authentication) {
+        Long userId = Long.parseLong(authentication.getName());
+        List<ChatSession> sessions = chatService.getUserSessions(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "성공했습니다");
+        response.put("data", sessions);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // (C) 대화 이력 조회 응답 (riskLevel 추가)
     @GetMapping("/{sessionId}/history")
-    public ResponseEntity<List<ChatMessage>> getHistory(@PathVariable String sessionId) {
-        // ChatMessage 안에 이미 id가 포함되어 있으므로, 프론트엔드는 이 데이터를 받아
-        // 각 메시지의 고유 ID를 바로 평가 버튼에 연결할 수 있습니다!
-        return ResponseEntity.ok(chatService.getChatHistory(sessionId));
+    public ResponseEntity<Map<String, Object>> getHistory(@PathVariable String sessionId) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", chatService.getHistoryWithRiskLevel(sessionId));
+
+        return ResponseEntity.ok(response);
     }
 }
