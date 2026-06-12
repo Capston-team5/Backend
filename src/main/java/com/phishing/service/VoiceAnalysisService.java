@@ -18,8 +18,8 @@ public class VoiceAnalysisService {
     private final OpenAiService openAiService;
     private final UrlAnalysisRepository urlAnalysisRepository;
 
-    public Map<String, String> analyzeVoice(MultipartFile audioFile, Long userId) {
-        Map<String, String> response = new HashMap<>();
+    public Map<String, Object> analyzeVoice(MultipartFile audioFile, Long userId) {
+        Map<String, Object> response = new HashMap<>();
 
         String extractedText = sttService.transcribeAudio(audioFile);
 
@@ -28,12 +28,16 @@ public class VoiceAnalysisService {
             return response;
         }
 
-        response.put("extractedText", extractedText);
-
-        String prompt = "다음은 통화 녹음 내용입니다. 이 대화가 보이스피싱인지 위험도를 분석해주세요:\n\n[통화 내용]\n" + extractedText;
+        String prompt = "다음은 통화 녹음 내용입니다. 이 대화가 보이스피싱인지 위험도(SAFE/LOW/MEDIUM/HIGH/CRITICAL)와 사유를 간결하게 알려주세요:\n\n[통화 내용]\n" + extractedText;
         String aiResult = openAiService.analyzePhishing(prompt);
 
-        response.put("aiResult", aiResult);
+        String riskLevel = parseRiskLevel(aiResult);
+        String phishingType = parsePhishingType(aiResult);
+
+        response.put("convertedText", extractedText);
+        response.put("riskLevel", riskLevel);
+        response.put("phishingType", phishingType);
+        response.put("message", aiResult);
 
         if (userId != null) {
             try {
@@ -41,7 +45,8 @@ public class VoiceAnalysisService {
                 history.setUserId(userId);
                 history.setType("VOICE");
                 history.setTarget(audioFile.getOriginalFilename());
-                history.setRiskLevel("MEDIUM");
+                history.setRiskLevel(riskLevel);
+                history.setPhishingType(phishingType);
                 history.setAiResult(aiResult);
                 history.setAnalyzedAt(LocalDateTime.now());
                 urlAnalysisRepository.save(history);
@@ -51,5 +56,24 @@ public class VoiceAnalysisService {
         }
 
         return response;
+    }
+
+    private String parseRiskLevel(String text) {
+        if (text == null) return "MEDIUM";
+        String upper = text.toUpperCase();
+        if (upper.contains("CRITICAL") || upper.contains("매우 위험")) return "CRITICAL";
+        if (upper.contains("HIGH") || upper.contains("높은")) return "HIGH";
+        if (upper.contains("LOW") || upper.contains("낮은")) return "LOW";
+        if (upper.contains("SAFE") || upper.contains("안전")) return "SAFE";
+        return "MEDIUM";
+    }
+
+    private String parsePhishingType(String text) {
+        if (text == null) return "기타";
+        if (text.contains("보이스피싱") || text.contains("보이스 피싱")) return "보이스 피싱";
+        if (text.contains("스미싱")) return "스미싱";
+        if (text.contains("파밍")) return "파밍";
+        if (text.contains("피싱")) return "피싱";
+        return "기타";
     }
 }

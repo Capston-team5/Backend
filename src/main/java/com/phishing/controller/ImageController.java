@@ -31,17 +31,18 @@ public class ImageController {
             }
         }
 
-        Map<String, String> result = imageAnalysisService.analyzeImage(file, userId);
+        Map<String, Object> result = imageAnalysisService.analyzeImage(file, userId);
 
         Map<String, Object> response = new HashMap<>();
         if (result.containsKey("error")) {
             response.put("success", false);
             response.put("message", result.get("error"));
+            response.put("data", null);
             return ResponseEntity.ok(response);
         }
 
         response.put("success", true);
-        response.put("message", "분석이 완료되었습니다");
+        response.put("message", "성공했습니다");
         response.put("data", result);
         return ResponseEntity.ok(response);
     }

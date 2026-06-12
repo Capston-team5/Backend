@@ -23,39 +23,77 @@ public class UrlAnalysisService {
 
     // 1. [기존 기능 수정] URL 분석 및 DB 저장 (하이브리드 탐지)
     // 💡 변경점: 이제 누가(userId) 검사했는지 파라미터로 받아야 합니다.
-    public String analyzeUrl(String targetUrl, Long userId) {
-        System.out.println("🔍 URL 1차 검사를 시작합니다 (구글 DB): " + targetUrl);
-        String finalResult = "";
+    public Map<String, Object> analyzeUrl(String targetUrl, Long userId) {
+        String aiResult = "";
         String riskLevel = "SAFE";
+        String phishingType = "기타";
+        String recommendation = "";
 
         boolean isMalicious = googleSafeBrowsingService.isMaliciousUrl(targetUrl);
 
         if (isMalicious) {
-            System.out.println("🚨 [경고] 구글 보안 DB에서 악성 URL로 판별되었습니다!");
-            finalResult = "위험도: CRITICAL. 구글 보안 데이터베이스에서 확인된 악성 URL입니다.";
+            aiResult = "구글 보안 데이터베이스에서 확인된 악성 URL입니다.";
             riskLevel = "CRITICAL";
+            phishingType = "피싱";
+            recommendation = "즉시 접속을 중단하고 해당 URL을 공유하지 마세요.";
         } else {
-            System.out.println("✅ 구글 검사 통과! AI 수사관 '돈킴이'에게 2차 정밀 분석을 의뢰합니다.");
-            finalResult = openAiService.analyzePhishing("분석할 URL: " + targetUrl);
-            riskLevel = parseRiskLevel(finalResult);
+            aiResult = openAiService.analyzePhishing("다음 URL을 분석해주세요. 위험도(SAFE/LOW/MEDIUM/HIGH/CRITICAL), 피싱 종류, 권고사항을 알려주세요: " + targetUrl);
+            riskLevel = parseRiskLevel(aiResult);
+            phishingType = parsePhishingType(aiResult);
+            recommendation = parseRecommendation(aiResult);
         }
 
-        // 🌟 프론트엔드 통합 요청에 맞춰 DB 저장 데이터 세팅!
+        int riskScore = riskLevelToScore(riskLevel);
+
         try {
             AnalysisHistory newRecord = new AnalysisHistory();
-            newRecord.setUserId(userId);     // 검사 요청한 유저 ID
-            newRecord.setType("URL");        // 분석 종류
-            newRecord.setTarget(targetUrl);  // URL 주소
-            newRecord.setRiskLevel(riskLevel); // 위험 등급
-            newRecord.setAnalyzedAt(LocalDateTime.now()); // 분석 시각
-            newRecord.setAiResult(finalResult);
-
+            newRecord.setUserId(userId);
+            newRecord.setType("URL");
+            newRecord.setTarget(targetUrl);
+            newRecord.setRiskLevel(riskLevel);
+            newRecord.setRiskScore(riskScore);
+            newRecord.setPhishingType(phishingType);
+            newRecord.setAnalyzedAt(LocalDateTime.now());
+            newRecord.setAiResult(aiResult);
             urlAnalysisRepository.save(newRecord);
-            System.out.println("💾 URL 분석 결과가 DB에 안전하게 저장되었습니다!");
         } catch (Exception e) {
-            System.err.println("🚨 DB 저장 중 문제가 발생했습니다: " + e.getMessage());
+            System.err.println("DB 저장 중 문제가 발생했습니다: " + e.getMessage());
         }
-        return finalResult;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("riskScore", riskScore);
+        result.put("riskLevel", riskLevel);
+        result.put("phishingType", phishingType);
+        result.put("recommendation", recommendation);
+        result.put("detectedKeywords", aiResult);
+        return result;
+    }
+
+    private int riskLevelToScore(String riskLevel) {
+        return switch (riskLevel) {
+            case "CRITICAL" -> 95;
+            case "HIGH"     -> 75;
+            case "MEDIUM"   -> 50;
+            case "LOW"      -> 25;
+            default         -> 5;
+        };
+    }
+
+    private String parsePhishingType(String text) {
+        if (text == null) return "기타";
+        if (text.contains("스미싱")) return "스미싱";
+        if (text.contains("파밍")) return "파밍";
+        if (text.contains("보이스피싱") || text.contains("보이스 피싱")) return "보이스피싱";
+        if (text.contains("피싱")) return "피싱";
+        return "기타";
+    }
+
+    private String parseRecommendation(String text) {
+        if (text == null) return "주의하세요.";
+        if (text.contains("접속") && text.contains("중단")) return "즉시 접속을 중단하세요.";
+        if (text.contains("클릭") && (text.contains("금지") || text.contains("하지 마"))) return "링크를 클릭하지 마세요.";
+        if (text.contains("안전") || text.contains("정상")) return "안전한 URL로 판단됩니다.";
+        return "주의가 필요합니다. 개인정보를 입력하지 마세요.";
     }
 
     // 🌟 [신규 기능] 특정 유저의 통합 분석 이력 조회 (프론트엔드 명세서 완벽 대응)

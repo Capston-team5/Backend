@@ -19,15 +19,16 @@ public class UrlAnalysisController {
     private final UrlAnalysisService urlAnalysisService;
 
     @PostMapping("/analysis/url")
-    public ResponseEntity<Map<String, String>> analyzeUrl(
+    public ResponseEntity<Map<String, Object>> analyzeUrl(
             @RequestParam(value = "url", required = false) String paramUrl,
             @RequestBody(required = false) Map<String, String> body,
             Authentication authentication) {
 
         String targetUrl = paramUrl != null ? paramUrl : (body != null ? body.get("url") : null);
         if (targetUrl == null || targetUrl.isBlank()) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "url 파라미터가 필요합니다.");
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "url 파라미터가 필요합니다.");
             return ResponseEntity.badRequest().body(error);
         }
 
@@ -40,9 +41,11 @@ public class UrlAnalysisController {
             }
         }
 
-        String result = urlAnalysisService.analyzeUrl(targetUrl, userId);
-        Map<String, String> response = new HashMap<>();
-        response.put("result", result);
+        Map<String, Object> result = urlAnalysisService.analyzeUrl(targetUrl, userId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "성공했습니다");
+        response.put("data", result);
         return ResponseEntity.ok(response);
     }
 
