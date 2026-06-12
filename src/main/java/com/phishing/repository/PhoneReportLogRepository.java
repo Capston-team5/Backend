@@ -22,8 +22,7 @@ public interface PhoneReportLogRepository extends JpaRepository<PhoneReportLog, 
             "FROM PhoneReportLog p " +
             "WHERE p.createdAt >= :sevenDaysAgo " +
             "GROUP BY p.phoneReport.phoneNumber " +
-            "ORDER BY cnt DESC LIMIT 10")
-        // 7일 이내 신고된 전화번호를 신고 횟수 기준 내림차순 상위 10개
+            "ORDER BY cnt DESC LIMIT 5")
     List<Object[]> findTop10RankingInLast7Days(LocalDateTime sevenDaysAgo);
     // 7일 신고 순위 API에서 사용
 }
