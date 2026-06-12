@@ -36,9 +36,8 @@ public class UrlAnalysisService {
             riskLevel = "CRITICAL";
         } else {
             System.out.println("✅ 구글 검사 통과! AI 수사관 '돈킴이'에게 2차 정밀 분석을 의뢰합니다.");
-            finalResult = openAiService.analyzePhishing(targetUrl);
-            // AI 결과에 따라 riskLevel 파싱하는 로직이 있다면 여기에 추가
-            riskLevel = "MEDIUM"; // (임시)
+            finalResult = openAiService.analyzePhishing("분석할 URL: " + targetUrl);
+            riskLevel = parseRiskLevel(finalResult);
         }
 
         // 🌟 프론트엔드 통합 요청에 맞춰 DB 저장 데이터 세팅!
@@ -88,6 +87,16 @@ public class UrlAnalysisService {
 
         record.setIsHelpful(helpful);
         urlAnalysisRepository.save(record);
+    }
+
+    private String parseRiskLevel(String aiResult) {
+        if (aiResult == null) return "MEDIUM";
+        String lower = aiResult.toLowerCase();
+        if (lower.contains("critical") || lower.contains("매우 위험") || lower.contains("90") || lower.contains("95") || lower.contains("100")) return "CRITICAL";
+        if (lower.contains("high") || lower.contains("높은") || lower.contains("위험") || lower.contains("7") || lower.contains("8")) return "HIGH";
+        if (lower.contains("low") || lower.contains("낮은") || lower.contains("안전") || lower.contains("1") || lower.contains("2")) return "LOW";
+        if (lower.contains("safe") || lower.contains("정상")) return "SAFE";
+        return "MEDIUM";
     }
 
     // 4. [기존 기능] 평가 통계 계산해서 가져오기

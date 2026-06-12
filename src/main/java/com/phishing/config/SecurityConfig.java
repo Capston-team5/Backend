@@ -32,23 +32,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // ... 생략 ...
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/",
                                 "/index.html",
                                 "/api/v1/phishing/**",
-                                "/api/v1/image",          // (안 쓰지만 둬도 무방합니다)
-                                "/api/v1/analysis/**",    // 🌟 우리가 만든 완벽한 프리패스!
+                                "/api/v1/image",
+                                "/api/v1/analysis/url",
+                                "/api/v1/analysis/image",
+                                "/api/v1/analysis/voice",
+                                "/api/v1/analysis/history/test",
                                 "/api/v1/users",
                                 "/api/v1/users/login",
                                 "/api/v1/admin/login",
-                                "/api/analysis/history/taekyung",
                                 "/swagger-ui.html",
                                 "/error",
                                 "/swagger-ui/**",
-                                // ❌ 여기서 "/https://team5-ktzh.vercel.app" 삭제!
                                 "/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

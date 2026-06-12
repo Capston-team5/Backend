@@ -20,6 +20,7 @@ public class ChatService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final ChatSessionRepository chatSessionRepository;
+    private final OpenAiService openAiService;
 
     @Transactional
     public ChatResponseDto processAndSaveChat(String sessionId, String userMessage, String type, String riskLevel, String preview, Long userId) {
@@ -36,8 +37,8 @@ public class ChatService {
             chatSessionRepository.save(session);
         }
 
-        // 2. 가짜 AI 응답 로직 (기존 유지)
-        String aiReply = "피싱번호로 등록된 기록이 있는 번호입니다";
+        // 2. AI 응답 생성
+        String aiReply = openAiService.analyzePhishing(userMessage);
 
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setSessionId(sessionId);
