@@ -61,6 +61,15 @@ public class ChatService {
         return chatSessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    // 채팅 메시지 피드백 저장
+    @Transactional
+    public void saveFeedback(Long chatMessageId, boolean isHelpful) {
+        ChatMessage message = chatMessageRepository.findById(chatMessageId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 메시지입니다. ID: " + chatMessageId));
+        message.setIsHelpful(isHelpful);
+        chatMessageRepository.save(message);
+    }
+
     // 특정 세션의 메시지 기록과 위험도 조회 (C번 항목)
     public Map<String, Object> getHistoryWithRiskLevel(String sessionId) {
         ChatSession session = chatSessionRepository.findById(sessionId)

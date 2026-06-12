@@ -64,4 +64,18 @@ public class ChatController {
 
         return ResponseEntity.ok(response);
     }
+
+    // 채팅 메시지 피드백 (도움됨/안됨)
+    @PostMapping("/feedback")
+    public ResponseEntity<Map<String, Object>> feedback(@RequestBody Map<String, Object> body) {
+        Long chatMessageId = Long.valueOf(body.get("chatMessageId").toString());
+        boolean isHelpful = Boolean.parseBoolean(body.get("isHelpful").toString());
+        chatService.saveFeedback(chatMessageId, isHelpful);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "평가가 반영되었습니다. 감사합니다!");
+        response.put("data", null);
+        return ResponseEntity.ok(response);
+    }
 }

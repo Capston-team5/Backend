@@ -49,19 +49,6 @@ public class UrlAnalysisController {
         return ResponseEntity.ok(response);
     }
 
-    // 2. [명세서 18번] 솔루션 평가
-    @PostMapping("/chat/feedback")
-    public ResponseEntity<Map<String, Object>> feedback(@RequestBody Map<String, Object> body) {
-        Long chatMessageId = Long.valueOf(body.get("chatMessageId").toString());
-        boolean isHelpful = Boolean.parseBoolean(body.get("isHelpful").toString());
-        urlAnalysisService.evaluateResult(chatMessageId, isHelpful);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "평가가 반영되었습니다. 감사합니다!");
-        response.put("data", null);
-        return ResponseEntity.ok(response);
-    }
 
     // 3. 통계 조회
     @GetMapping("/phishing/stats")
