@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -17,11 +18,19 @@ public class UrlAnalysisController {
 
     private final UrlAnalysisService urlAnalysisService;
 
-    // 🌟 수정 1: 경로를 프리패스 명단에 맞춰 /analysis/url 로 통일!
     @PostMapping("/analysis/url")
-    public ResponseEntity<String> analyzeUrl(@RequestParam("url") String targetUrl, Authentication authentication) {
+    public ResponseEntity<Map<String, String>> analyzeUrl(
+            @RequestParam(value = "url", required = false) String paramUrl,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication) {
 
-        // 🌟 수정 2: 비회원도 안전하게 통과할 수 있는 유연한 ID 추출 로직 (이미지/음성과 동일)
+        String targetUrl = paramUrl != null ? paramUrl : (body != null ? body.get("url") : null);
+        if (targetUrl == null || targetUrl.isBlank()) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "url 파라미터가 필요합니다.");
+            return ResponseEntity.badRequest().body(error);
+        }
+
         Long userId = null;
         if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
             try {
@@ -32,7 +41,9 @@ public class UrlAnalysisController {
         }
 
         String result = urlAnalysisService.analyzeUrl(targetUrl, userId);
-        return ResponseEntity.ok("🤖 [AI URL 수사관 분석 결과]\n\n" + result);
+        Map<String, String> response = new HashMap<>();
+        response.put("result", result);
+        return ResponseEntity.ok(response);
     }
 
     // 2. [명세서 18번] 솔루션 평가
