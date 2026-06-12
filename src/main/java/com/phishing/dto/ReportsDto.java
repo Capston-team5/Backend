@@ -13,6 +13,7 @@ public class ReportsDto {
         // POST /api/v1/reports/phone 요청 바디
 
         private String number;          // 신고할 전화번호
+        private String phishingType;    // 피싱 종류 (선택)
     }
 
     @Getter
