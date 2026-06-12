@@ -31,17 +31,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // ... 생략 ...
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
                                 "/index.html",
                                 "/api/v1/phishing/**",
-                                "/api/v1/image",
-                                "/api/v1/analysis/**",
+                                "/api/v1/image",          // (안 쓰지만 둬도 무방합니다)
+                                "/api/v1/analysis/**",    // 🌟 우리가 만든 완벽한 프리패스!
                                 "/api/v1/users",
                                 "/api/v1/users/login",
                                 "/api/v1/admin/login",
@@ -49,7 +46,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/error",
                                 "/swagger-ui/**",
-                                "/https://team5-ktzh.vercel.app",
+                                // ❌ 여기서 "/https://team5-ktzh.vercel.app" 삭제!
                                 "/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -67,9 +64,10 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://10.30.81.223:5173",
-                "http://18.179.53.245:5173"
+                "http://18.179.53.245:5173",
+                "https://team5-ktzh.vercel.app" // 🌟 진짜 프론트엔드 주소는 여기에 추가해야 합니다! (슬래시 주의)
         ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")); // 🌟 OPTIONS(사전 요청) 추가!
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
