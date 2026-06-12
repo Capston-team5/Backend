@@ -12,7 +12,10 @@ public class ChatMessage {
     private Long id;
 
     private String sessionId;
+
+    @Column(columnDefinition = "TEXT")
     private String message;
+
     private String sender;
     private LocalDateTime timestamp;
     private Boolean isHelpful;
