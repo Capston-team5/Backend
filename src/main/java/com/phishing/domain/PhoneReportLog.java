@@ -20,7 +20,7 @@ public class PhoneReportLog {
     private User user;                                      // 신고한 회원
 
     @ManyToOne(fetch = FetchType.LAZY)                      // N:1 관계 (여러 신고 로그 → 한 전화번호)
-    @JoinColumn(name = "phone_number", referencedColumnName = "phonenumber", nullable = false) // FK = phone_number
+    @JoinColumn(name = "phone_number", referencedColumnName = "phoneNumber", nullable = false) // FK = phone_number
     private PhoneReport phoneReport;                        // 신고된 전화번호
 
     @Column(nullable = false)                               // NOT NULL
