@@ -4,7 +4,7 @@ import com.phishing.dto.AnalysisHistoryResponseDto;
 import com.phishing.service.UrlAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication; // 🌟 추가된 시큐리티 주머니
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,19 +17,25 @@ public class UrlAnalysisController {
 
     private final UrlAnalysisService urlAnalysisService;
 
-    // 1. [명세서 1번] URL 피싱 분석
-    @PostMapping("/analyze/url")
-    // 🌟 수정: 메서드 파라미터에 Authentication을 추가해서 문지기가 넘겨준 정보를 받습니다!
+    // 🌟 수정 1: 경로를 프리패스 명단에 맞춰 /analysis/url 로 통일!
+    @PostMapping("/analysis/url")
     public ResponseEntity<String> analyzeUrl(@RequestParam("url") String targetUrl, Authentication authentication) {
 
-        // 🌟 마법의 코드: 주머니에서 진짜 유저 ID 꺼내기 (보통 토큰의 Name/Subject에 ID가 들어있습니다)
-        Long userId = Long.parseLong(authentication.getName());
+        // 🌟 수정 2: 비회원도 안전하게 통과할 수 있는 유연한 ID 추출 로직 (이미지/음성과 동일)
+        Long userId = null;
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
+            try {
+                userId = Long.parseLong(authentication.getName());
+            } catch (NumberFormatException e) {
+                userId = null;
+            }
+        }
 
         String result = urlAnalysisService.analyzeUrl(targetUrl, userId);
         return ResponseEntity.ok("🤖 [AI URL 수사관 분석 결과]\n\n" + result);
     }
 
-    // 2. [명세서 18번] 솔루션 평가 (기존 evaluate를 feedback으로 변경)
+    // 2. [명세서 18번] 솔루션 평가
     @PostMapping("/chat/feedback")
     public ResponseEntity<String> feedback(@RequestParam Long id, @RequestParam boolean helpful) {
         urlAnalysisService.evaluateResult(id, helpful);
@@ -42,18 +48,16 @@ public class UrlAnalysisController {
         return ResponseEntity.ok(urlAnalysisService.getEvaluationStats());
     }
 
-    // 🌟 프론트엔드가 요청한 "진짜" 통합 이력 조회 API (본게임!)
+    // 🌟 프론트엔드가 요청한 통합 이력 조회 API (본게임!)
     @GetMapping("/analysis/history")
-    public ResponseEntity<List<AnalysisHistoryResponseDto>> getHistory(Authentication authentication) { // 🌟 Authentication 추가
-
-        // 🌟 마법의 코드: 주머니에서 진짜 유저 ID 꺼내기
+    public ResponseEntity<List<AnalysisHistoryResponseDto>> getHistory(Authentication authentication) {
+        // 이력 조회는 "회원 전용" 기능이므로 기존 코드 유지 (비회원은 시큐리티가 미리 차단함)
         Long userId = Long.parseLong(authentication.getName());
-
         List<AnalysisHistoryResponseDto> historyList = urlAnalysisService.getUserHistory(userId);
         return ResponseEntity.ok(historyList);
     }
 
-    // 🛠️ 껍데기 테스트용 임시 API (나중에 지우셔도 됩니다)
+    // 🛠️ 껍데기 테스트용 임시 API
     @GetMapping("/analysis/history/test")
     public ResponseEntity<AnalysisHistoryResponseDto> testDto() {
         AnalysisHistoryResponseDto dummyData = AnalysisHistoryResponseDto.builder()
