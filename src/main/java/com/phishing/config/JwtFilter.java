@@ -18,20 +18,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
 
-    // 🌟 추가된 핵심 로직: 특정 조건에서는 이 필터(검색대)를 아예 건너뜁니다!
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-
-        // 1. 브라우저의 사전 요청(OPTIONS) 무조건 통과
-        // 2. 로그인, 회원가입, 분석(analysis) 등 프리패스 경로는 토큰 검사 면제
-        return request.getMethod().equals("OPTIONS") ||
-                path.startsWith("/api/v1/analysis") ||
-                path.startsWith("/api/v1/phishing") ||
-                path.startsWith("/api/v1/users/login") ||
-                path.startsWith("/api/v1/users/signup");
-    }
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
