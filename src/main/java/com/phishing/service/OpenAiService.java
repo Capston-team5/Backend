@@ -21,7 +21,77 @@ public class OpenAiService {
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
     private final RestTemplate restTemplate = new RestTemplate();
 
+    // URL 피싱 분석
+    public String analyzeUrl(String url) {
+        String system = """
+                당신은 사이버 보안 전문가입니다. 주어진 URL이 피싱·악성 사이트인지 분석합니다.
+
+                반드시 아래 항목을 분석하세요:
+                1. 도메인 신뢰도 (공식 기관 도메인 여부, 오타 도메인 여부)
+                2. URL 구조 이상 여부 (과도한 서브도메인, 특수문자, 무작위 문자열)
+                3. 의심 키워드 포함 여부 (login, verify, secure, account, update 등)
+                4. HTTPS 사용 여부
+                5. 단축 URL 또는 IP 직접 접근 여부
+
+                위험도는 SAFE / LOW / MEDIUM / HIGH / CRITICAL 중 하나로 판정하고,
+                판정 근거를 구체적으로 2~4줄로 설명하세요.
+                마지막에 사용자에게 권고 행동을 한 줄로 알려주세요.
+                """;
+        String user = "분석할 URL: " + url;
+        return call(system, user);
+    }
+
+    // 이미지(스미싱 문자) 분석
+    public String analyzeImage(String extractedText) {
+        String system = """
+                당신은 스미싱·피싱 문자 탐지 전문가입니다. 이미지에서 추출된 텍스트를 분석합니다.
+
+                반드시 아래 항목을 분석하세요:
+                1. 발신자 위장 여부 (은행, 검찰, 국세청, 택배사 등 공공기관 사칭)
+                2. 긴급성·공포 조장 표현 (계좌 정지, 즉시 클릭, 선착순 등)
+                3. 악성 링크 유도 여부 (URL 클릭, 앱 설치 유도)
+                4. 개인정보·금전 요구 여부
+                5. 비정상적 문법·맞춤법 오류
+
+                위험도는 SAFE / LOW / MEDIUM / HIGH / CRITICAL 중 하나로 판정하고,
+                주요 의심 근거를 2~4줄로 설명하세요.
+                마지막에 피싱 종류(스미싱/파밍/피싱/보이스피싱/정상)를 명시하세요.
+                """;
+        String user = "분석할 문자 내용:\n" + extractedText;
+        return call(system, user);
+    }
+
+    // 음성(보이스피싱) 분석
+    public String analyzeVoice(String transcript) {
+        String system = """
+                당신은 보이스피싱 탐지 전문가입니다. 통화 녹음에서 변환된 텍스트를 분석합니다.
+
+                반드시 아래 항목을 분석하세요:
+                1. 공공기관·금융기관 사칭 여부 (검찰, 경찰, 금감원, 은행 등)
+                2. 계좌이체·현금 요구 여부
+                3. 개인정보(주민번호, 계좌번호, 비밀번호) 요구 여부
+                4. 심리적 압박·협박 표현 (수사, 체포, 명의도용, 즉시 등)
+                5. 특정 앱 설치 또는 원격 제어 유도 여부
+
+                위험도는 SAFE / LOW / MEDIUM / HIGH / CRITICAL 중 하나로 판정하고,
+                주요 의심 근거를 2~4줄로 설명하세요.
+                마지막에 피해 예방을 위한 구체적 행동 지침을 한 줄로 알려주세요.
+                """;
+        String user = "분석할 통화 내용:\n" + transcript;
+        return call(system, user);
+    }
+
+    // 채팅 상담 (기존 호환용)
     public String analyzePhishing(String input) {
+        String system = """
+                당신은 피싱·사기 피해 예방 상담 전문가입니다.
+                사용자의 질문이나 의심 내용에 대해 친절하고 명확하게 답변하세요.
+                위험 여부와 대처 방법을 구체적으로 안내해 주세요.
+                """;
+        return call(system, input);
+    }
+
+    private String call(String systemPrompt, String userPrompt) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -31,26 +101,18 @@ public class OpenAiService {
             body.put("model", "gpt-4o-mini");
 
             List<Map<String, String>> messages = new ArrayList<>();
-
-            Map<String, String> systemMessage = new HashMap<>();
-            systemMessage.put("role", "system");
-            systemMessage.put("content", "당신은 보이스피싱 및 악성 URL 탐지 전문가입니다. 주어진 내용의 피싱 위험도(%)와 그 사유를 3줄 이내로 분석해주세요.");
-            messages.add(systemMessage);
-
-            Map<String, String> userMessage = new HashMap<>();
-            userMessage.put("role", "user");
-            userMessage.put("content", input);
-            messages.add(userMessage);
+            messages.add(Map.of("role", "system", "content", systemPrompt));
+            messages.add(Map.of("role", "user", "content", userPrompt));
 
             body.put("messages", messages);
             body.put("temperature", 0.2);
+            body.put("max_tokens", 500);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
             ResponseEntity<Map> response = restTemplate.postForEntity(API_URL, request, Map.class);
 
             List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
             Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-
             return (String) message.get("content");
 
         } catch (Exception e) {

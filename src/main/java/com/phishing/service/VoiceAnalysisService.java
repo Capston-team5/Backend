@@ -28,8 +28,7 @@ public class VoiceAnalysisService {
             return response;
         }
 
-        String prompt = "다음은 통화 녹음 내용입니다. 이 대화가 보이스피싱인지 위험도(SAFE/LOW/MEDIUM/HIGH/CRITICAL)와 사유를 간결하게 알려주세요:\n\n[통화 내용]\n" + extractedText;
-        String aiResult = openAiService.analyzePhishing(prompt);
+        String aiResult = openAiService.analyzeVoice(extractedText);
 
         String riskLevel = parseRiskLevel(aiResult);
         String phishingType = parsePhishingType(aiResult);

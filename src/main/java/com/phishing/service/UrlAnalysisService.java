@@ -37,7 +37,7 @@ public class UrlAnalysisService {
             phishingType = "피싱";
             recommendation = "즉시 접속을 중단하고 해당 URL을 공유하지 마세요.";
         } else {
-            aiResult = openAiService.analyzePhishing("다음 URL을 분석해주세요. 위험도(SAFE/LOW/MEDIUM/HIGH/CRITICAL), 피싱 종류, 권고사항을 알려주세요: " + targetUrl);
+            aiResult = openAiService.analyzeUrl(targetUrl);
             riskLevel = parseRiskLevel(aiResult);
             phishingType = parsePhishingType(aiResult);
             recommendation = parseRecommendation(aiResult);

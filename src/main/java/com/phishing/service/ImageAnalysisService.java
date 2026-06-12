@@ -28,8 +28,7 @@ public class ImageAnalysisService {
             return response;
         }
 
-        String prompt = "다음은 카카오톡이나 문자 메시지를 캡처한 화면에서 추출한 텍스트입니다. 이 내용이 단순한 은행/기관의 안내인지, 아니면 악의적인 스미싱(피싱) 시도인지 분석해서 위험도(SAFE/LOW/MEDIUM/HIGH/CRITICAL)와 피싱 종류, 사유를 JSON 형식 없이 간결하게 알려주세요:\n\n[추출된 텍스트]\n" + extractedText;
-        String aiResult = openAiService.analyzePhishing(prompt);
+        String aiResult = openAiService.analyzeImage(extractedText);
 
         String riskLevel = parseRiskLevel(aiResult);
         String phishingType = parsePhishingType(aiResult);
