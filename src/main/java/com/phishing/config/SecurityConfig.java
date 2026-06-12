@@ -47,8 +47,9 @@ public class SecurityConfig {
                                 "/api/v1/admin/login",
                                 "/api/analysis/history/taekyung",
                                 "/swagger-ui.html",
+                                "/error",
                                 "/swagger-ui/**",
-                                "https://team5-ktzh.vercel.app",
+                                "/https://team5-ktzh.vercel.app",
                                 "/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

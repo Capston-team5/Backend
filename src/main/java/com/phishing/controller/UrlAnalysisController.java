@@ -18,7 +18,7 @@ public class UrlAnalysisController {
     private final UrlAnalysisService urlAnalysisService;
 
     // 1. [명세서 1번] URL 피싱 분석
-    @PostMapping("/phishing/analyze")
+    @PostMapping("/analyze/url")
     // 🌟 수정: 메서드 파라미터에 Authentication을 추가해서 문지기가 넘겨준 정보를 받습니다!
     public ResponseEntity<String> analyzeUrl(@RequestParam("url") String targetUrl, Authentication authentication) {
 
