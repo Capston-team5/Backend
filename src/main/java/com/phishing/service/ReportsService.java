@@ -45,7 +45,12 @@ public class ReportsService {
 
         // 같은 유저가 같은 번호 중복 신고 방지
         if (phoneReportLogRepository.existsByUserAndPhoneReport(user, phoneReport)) {
-            throw new IllegalArgumentException("이미 신고한 번호입니다");
+            return new ReportsDto.ReportResponse(
+                    phoneReport.getPhoneNumber(),
+                    phoneReport.getReportCount(),
+                    "이미 신고한 번호입니다",
+                    true
+            );
         }
 
         // 신고 로그 저장
@@ -59,7 +64,8 @@ public class ReportsService {
         return new ReportsDto.ReportResponse(
                 phoneReport.getPhoneNumber(),
                 phoneReport.getReportCount(),
-                "신고가 접수되었습니다"
+                "신고가 접수되었습니다",
+                false
         );
     }
 

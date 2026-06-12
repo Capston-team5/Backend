@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,13 +39,21 @@ public class ChatService {
             chatSessionRepository.save(session);
         }
 
-        // 2. AI 응답 생성
+        // 2. 유저 메시지 저장
+        ChatMessage userMsg = new ChatMessage();
+        userMsg.setSessionId(sessionId);
+        userMsg.setMessage(userMessage);
+        userMsg.setSender("user");
+        userMsg.setTimestamp(LocalDateTime.now());
+        chatMessageRepository.save(userMsg);
+
+        // 3. AI 응답 생성 및 저장
         String aiReply = openAiService.analyzePhishing(userMessage);
 
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setSessionId(sessionId);
         chatMessage.setMessage(aiReply);
-        chatMessage.setSender("Bot");
+        chatMessage.setSender("assistant");
         chatMessage.setTimestamp(LocalDateTime.now());
 
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
@@ -70,17 +80,27 @@ public class ChatService {
         chatMessageRepository.save(message);
     }
 
-    // 특정 세션의 메시지 기록과 위험도 조회 (C번 항목)
+    // 특정 세션의 메시지 기록과 위험도 조회
     public Map<String, Object> getHistoryWithRiskLevel(String sessionId) {
         ChatSession session = chatSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 세션입니다."));
 
         List<ChatMessage> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        // 프론트엔드가 기대하는 { role, content, createdAt } 형식으로 변환
+        List<Map<String, Object>> formattedMessages = messages.stream().map(m -> {
+            Map<String, Object> msg = new HashMap<>();
+            msg.put("role", m.getSender());   // "user" 또는 "assistant"
+            msg.put("content", m.getMessage());
+            msg.put("createdAt", m.getTimestamp() != null ? m.getTimestamp().format(formatter) : "");
+            return msg;
+        }).collect(Collectors.toList());
 
         Map<String, Object> data = new HashMap<>();
         data.put("sessionId", sessionId);
         data.put("riskLevel", session.getRiskLevel());
-        data.put("messages", messages);
+        data.put("messages", formattedMessages);
 
         return data;
     }

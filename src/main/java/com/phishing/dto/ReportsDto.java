@@ -23,11 +23,13 @@ public class ReportsDto {
         private String number;          // 신고된 전화번호
         private int reportCount;        // 현재까지 신고 횟수
         private String message;         // 신고 접수 안내 문구
+        private boolean alreadyReported; // 이미 신고한 번호 여부
 
-        public ReportResponse(String number, int reportCount, String message) {
+        public ReportResponse(String number, int reportCount, String message, boolean alreadyReported) {
             this.number = number;
             this.reportCount = reportCount;
             this.message = message;
+            this.alreadyReported = alreadyReported;
         }
     }
 
