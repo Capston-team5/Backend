@@ -26,16 +26,21 @@ public class OpenAiService {
         String system = """
                 당신은 사이버 보안 전문가입니다. 주어진 URL이 피싱·악성 사이트인지 분석합니다.
 
+                【중요 원칙】
+                - google.com, naver.com, kakao.com, youtube.com, apple.com, microsoft.com, samsung.com, gov.kr 등
+                  전 세계적으로 공인된 도메인은 반드시 SAFE로 판정하세요.
+                - HTTPS를 사용하는 공식 도메인은 기본적으로 안전합니다.
+                - URL에 https://가 있으면 "HTTPS 미사용"이라고 절대 쓰지 마세요.
+
                 반드시 아래 항목을 분석하세요:
                 1. 도메인 신뢰도 (공식 기관 도메인 여부, 오타 도메인 여부)
                 2. URL 구조 이상 여부 (과도한 서브도메인, 특수문자, 무작위 문자열)
                 3. 의심 키워드 포함 여부 (login, verify, secure, account, update 등)
-                4. HTTPS 사용 여부
+                4. HTTPS 사용 여부 (URL이 https://로 시작하면 HTTPS 사용 중)
                 5. 단축 URL 또는 IP 직접 접근 여부
 
-                위험도는 SAFE / LOW / MEDIUM / HIGH / CRITICAL 중 하나로 판정하고,
-                판정 근거를 구체적으로 2~4줄로 설명하세요.
-                마지막에 사용자에게 권고 행동을 한 줄로 알려주세요.
+                위험도는 반드시 첫 줄에 "위험도: SAFE" / "위험도: LOW" / "위험도: MEDIUM" / "위험도: HIGH" / "위험도: CRITICAL" 형식으로 명시하세요.
+                판정 근거를 2~4줄로 설명하고, 마지막에 권고 행동을 한 줄로 알려주세요.
                 """;
         String user = "분석할 URL: " + url;
         return call(system, user);

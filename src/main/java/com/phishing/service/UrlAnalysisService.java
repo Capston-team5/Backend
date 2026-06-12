@@ -32,15 +32,17 @@ public class UrlAnalysisService {
         boolean isMalicious = googleSafeBrowsingService.isMaliciousUrl(targetUrl);
 
         if (isMalicious) {
-            aiResult = "구글 보안 데이터베이스에서 확인된 악성 URL입니다.";
-            riskLevel = "CRITICAL";
-            phishingType = "피싱";
-            recommendation = "즉시 접속을 중단하고 해당 URL을 공유하지 마세요.";
-        } else {
+            // 1차: Safe Browsing이 악성 판단 → AI가 2차 상세 분석
             aiResult = openAiService.analyzeUrl(targetUrl);
             riskLevel = parseRiskLevel(aiResult);
             phishingType = parsePhishingType(aiResult);
             recommendation = parseRecommendation(aiResult);
+        } else {
+            // 1차: Safe Browsing이 안전 판단 → AI 분석 없이 SAFE 반환
+            aiResult = "구글 Safe Browsing 검사 결과 안전한 URL입니다.";
+            riskLevel = "SAFE";
+            phishingType = "정상";
+            recommendation = "안전한 URL로 판단됩니다.";
         }
 
         int riskScore = riskLevelToScore(riskLevel);
@@ -129,11 +131,18 @@ public class UrlAnalysisService {
 
     private String parseRiskLevel(String aiResult) {
         if (aiResult == null) return "MEDIUM";
-        String lower = aiResult.toLowerCase();
-        if (lower.contains("critical") || lower.contains("매우 위험") || lower.contains("90") || lower.contains("95") || lower.contains("100")) return "CRITICAL";
-        if (lower.contains("high") || lower.contains("높은") || lower.contains("위험") || lower.contains("7") || lower.contains("8")) return "HIGH";
-        if (lower.contains("low") || lower.contains("낮은") || lower.contains("안전") || lower.contains("1") || lower.contains("2")) return "LOW";
-        if (lower.contains("safe") || lower.contains("정상")) return "SAFE";
+        // "위험도: CRITICAL" 형식을 우선 파싱
+        if (aiResult.contains("위험도: CRITICAL") || aiResult.contains("위험도:CRITICAL")) return "CRITICAL";
+        if (aiResult.contains("위험도: HIGH") || aiResult.contains("위험도:HIGH")) return "HIGH";
+        if (aiResult.contains("위험도: MEDIUM") || aiResult.contains("위험도:MEDIUM")) return "MEDIUM";
+        if (aiResult.contains("위험도: LOW") || aiResult.contains("위험도:LOW")) return "LOW";
+        if (aiResult.contains("위험도: SAFE") || aiResult.contains("위험도:SAFE")) return "SAFE";
+        // 폴백: 단어 자체로 판단
+        String upper = aiResult.toUpperCase();
+        if (upper.contains("CRITICAL")) return "CRITICAL";
+        if (upper.contains("HIGH")) return "HIGH";
+        if (upper.contains("SAFE")) return "SAFE";
+        if (upper.contains("LOW")) return "LOW";
         return "MEDIUM";
     }
 
