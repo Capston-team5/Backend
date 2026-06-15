@@ -58,11 +58,14 @@ public class UrlAnalysisController {
 
     // 🌟 프론트엔드가 요청한 통합 이력 조회 API (본게임!)
     @GetMapping("/analysis/history")
-    public ResponseEntity<List<AnalysisHistoryResponseDto>> getHistory(Authentication authentication) {
-        // 이력 조회는 "회원 전용" 기능이므로 기존 코드 유지 (비회원은 시큐리티가 미리 차단함)
+    public ResponseEntity<Map<String, Object>> getHistory(Authentication authentication) {
         Long userId = Long.parseLong(authentication.getName());
         List<AnalysisHistoryResponseDto> historyList = urlAnalysisService.getUserHistory(userId);
-        return ResponseEntity.ok(historyList);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "성공했습니다");
+        response.put("data", historyList);
+        return ResponseEntity.ok(response);
     }
 
     // 🛠️ 껍데기 테스트용 임시 API

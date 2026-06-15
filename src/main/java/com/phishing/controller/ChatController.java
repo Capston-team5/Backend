@@ -60,6 +60,7 @@ public class ChatController {
     public ResponseEntity<Map<String, Object>> getHistory(@PathVariable String sessionId) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
+        response.put("message", "성공했습니다");
         response.put("data", chatService.getHistoryWithRiskLevel(sessionId));
 
         return ResponseEntity.ok(response);
