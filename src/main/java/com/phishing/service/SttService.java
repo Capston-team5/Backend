@@ -41,6 +41,12 @@ public class SttService {
             // 4. 받아온 결과에서 'text'만 쏙 뽑아내기
             return (String) response.getBody().get("text");
 
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 413) {
+                return "오류: 음성 파일이 너무 깁니다. 60초 이하의 파일만 분석할 수 있습니다.";
+            }
+            e.printStackTrace();
+            return "음성 분석 중 오류가 발생했습니다. API 키나 파일 형식을 확인해주세요!";
         } catch (Exception e) {
             e.printStackTrace();
             return "음성 분석 중 오류가 발생했습니다. API 키나 파일 형식을 확인해주세요!";

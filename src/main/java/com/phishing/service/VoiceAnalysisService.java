@@ -23,8 +23,8 @@ public class VoiceAnalysisService {
 
         String extractedText = sttService.transcribeAudio(audioFile);
 
-        if (extractedText == null || extractedText.contains("오류가 발생했습니다")) {
-            response.put("error", "STT 변환 실패: " + extractedText);
+        if (extractedText == null || extractedText.startsWith("오류:") || extractedText.contains("오류가 발생했습니다")) {
+            response.put("error", extractedText != null ? extractedText : "STT 변환 중 오류가 발생했습니다.");
             return response;
         }
 
