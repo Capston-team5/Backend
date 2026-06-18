@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -19,7 +20,7 @@ public class SttController {
 
     @PostMapping("/analysis/voice")
     public ResponseEntity<Map<String, Object>> analyzeVoice(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam("file") List<MultipartFile> files,
             Authentication authentication) {
 
         Long userId = null;
@@ -31,7 +32,7 @@ public class SttController {
             }
         }
 
-        Map<String, Object> result = voiceAnalysisService.analyzeVoice(file, userId);
+        Map<String, Object> result = voiceAnalysisService.analyzeVoices(files, userId);
 
         Map<String, Object> response = new HashMap<>();
         if (result.containsKey("error")) {
