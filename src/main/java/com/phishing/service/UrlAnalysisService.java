@@ -31,18 +31,16 @@ public class UrlAnalysisService {
 
         boolean isMalicious = googleSafeBrowsingService.isMaliciousUrl(targetUrl);
 
-        if (isMalicious) {
-            // 1차: Safe Browsing이 악성 판단 → AI가 2차 상세 분석
-            aiResult = openAiService.analyzeUrl(targetUrl);
-            riskLevel = parseRiskLevel(aiResult);
-            phishingType = parsePhishingType(aiResult);
-            recommendation = parseRecommendation(aiResult);
-        } else {
-            // 1차: Safe Browsing이 안전 판단 → AI 분석 없이 SAFE 반환
-            aiResult = "구글 Safe Browsing 검사 결과 안전한 URL입니다.";
-            riskLevel = "SAFE";
-            phishingType = "정상";
-            recommendation = "안전한 URL로 판단됩니다.";
+        // AI가 항상 분석 (Safe Browsing 결과는 참고 정보로 전달)
+        aiResult = openAiService.analyzeUrl(targetUrl);
+        riskLevel = parseRiskLevel(aiResult);
+        phishingType = parsePhishingType(aiResult);
+        recommendation = parseRecommendation(aiResult);
+
+        // Safe Browsing이 악성 판단했는데 AI가 SAFE로 판단한 경우 → 최소 HIGH로 보정
+        if (isMalicious && (riskLevel.equals("SAFE") || riskLevel.equals("LOW"))) {
+            riskLevel = "HIGH";
+            recommendation = "구글 Safe Browsing에서 악성으로 탐지된 URL입니다. 주의하세요.";
         }
 
         int riskScore = riskLevelToScore(riskLevel);
