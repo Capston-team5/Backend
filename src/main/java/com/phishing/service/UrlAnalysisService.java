@@ -43,9 +43,17 @@ public class UrlAnalysisService {
 
             // HTTPS URL인데 AI가 HTTPS 미사용을 언급한 경우 강제 제거
             if (targetUrl.startsWith("https://")) {
-                aiResult = aiResult.replaceAll("(?i).*https\\s*미사용.*\\n?", "");
-                aiResult = aiResult.replaceAll("(?i).*보안 연결 없음.*\\n?", "");
-                aiResult = aiResult.replaceAll("(?i).*https를 사용하지 않.*\\n?", "");
+                String[] lines = aiResult.split("\n");
+                StringBuilder filtered = new StringBuilder();
+                for (String line : lines) {
+                    String lower = line.toLowerCase();
+                    if (lower.contains("https") && (lower.contains("미사용") || lower.contains("사용하지") || lower.contains("보안 연결 없음"))) {
+                        continue;
+                    }
+                    if (filtered.length() > 0) filtered.append("\n");
+                    filtered.append(line);
+                }
+                aiResult = filtered.toString();
             }
 
             riskLevel = parseRiskLevel(aiResult);
