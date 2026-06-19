@@ -111,7 +111,7 @@ public class UrlAnalysisService {
 
     private boolean isTrustedDomain(String url) {
         try {
-            String host = url.replaceFirst("^https?://", "").split("/")[0].split("\\?")[0].toLowerCase();
+            String host = url.replaceFirst("^https?://", "").split("/")[0].split("\\?")[0].split(":")[0].toLowerCase();
             for (String trusted : TRUSTED_DOMAINS) {
                 if (host.equals(trusted) || host.endsWith("." + trusted)) {
                     return true;
