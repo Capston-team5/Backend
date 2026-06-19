@@ -24,6 +24,11 @@ public class ReportsService {
     private final PhoneReportLogRepository phoneReportLogRepository; // 신고 내역 DB 접근용
     private final UserRepository userRepository;                     // 유저 DB 접근용
 
+    private String normalizePhone(String phone) {
+        if (phone == null) return "";
+        return phone.replaceAll("[^0-9]", "");
+    }
+
     // 전화번호 신고
     public ReportsDto.ReportResponse report(Long userId, ReportsDto.ReportRequest request) {
 
@@ -31,15 +36,17 @@ public class ReportsService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다"));
 
+        String normalized = normalizePhone(request.getNumber());
+
         // 중복 신고 확인
         PhoneReport phoneReport;
-        if (phoneReportRepository.existsByPhoneNumber(request.getNumber())) {
+        if (phoneReportRepository.existsByPhoneNumber(normalized)) {
             // 이미 신고된 번호면 기존 데이터 가져오기
-            phoneReport = phoneReportRepository.findByPhoneNumber(request.getNumber())
+            phoneReport = phoneReportRepository.findByPhoneNumber(normalized)
                     .orElseThrow();
         } else {
             // 처음 신고된 번호면 새로 생성
-            phoneReport = new PhoneReport(request.getNumber());
+            phoneReport = new PhoneReport(normalized);
             phoneReportRepository.save(phoneReport);
         }
 
@@ -72,6 +79,8 @@ public class ReportsService {
     // 전화번호 조회
     @Transactional(readOnly = true)     // 읽기 전용 트랜잭션
     public ReportsDto.PhoneInfoResponse getPhoneInfo(String phoneNumber) {
+
+        phoneNumber = normalizePhone(phoneNumber);
 
         // 신고 이력 없으면 UNKNOWN 반환
         if (!phoneReportRepository.existsByPhoneNumber(phoneNumber)) {
