@@ -42,7 +42,8 @@ public class OpenAiService {
                 위험도는 반드시 첫 줄에 "위험도: SAFE" / "위험도: LOW" / "위험도: MEDIUM" / "위험도: HIGH" / "위험도: CRITICAL" 형식으로 명시하세요.
                 판정 근거를 2~4줄로 설명하고, 마지막에 권고 행동을 한 줄로 알려주세요.
                 """;
-        String user = "분석할 URL: " + url;
+        boolean isHttps = url.startsWith("https://");
+        String user = "분석할 URL: " + url + "\n[참고] 이 URL은 " + (isHttps ? "HTTPS를 사용 중입니다. HTTPS 미사용 관련 언급을 하지 마세요." : "HTTPS를 사용하지 않습니다.");
         return call(system, user);
     }
 
