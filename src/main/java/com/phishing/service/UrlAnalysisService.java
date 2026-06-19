@@ -40,6 +40,14 @@ public class UrlAnalysisService {
 
             // AI가 항상 분석
             aiResult = openAiService.analyzeUrl(targetUrl);
+
+            // HTTPS URL인데 AI가 HTTPS 미사용을 언급한 경우 강제 제거
+            if (targetUrl.startsWith("https://")) {
+                aiResult = aiResult.replaceAll("(?i).*https\\s*미사용.*\\n?", "");
+                aiResult = aiResult.replaceAll("(?i).*보안 연결 없음.*\\n?", "");
+                aiResult = aiResult.replaceAll("(?i).*https를 사용하지 않.*\\n?", "");
+            }
+
             riskLevel = parseRiskLevel(aiResult);
             phishingType = parsePhishingType(aiResult);
             recommendation = parseRecommendation(aiResult);
